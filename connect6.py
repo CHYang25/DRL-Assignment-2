@@ -1,6 +1,8 @@
 import sys
 import numpy as np
 import random
+from connect6_agent import Connect6_UCTMCTS, Connect6_UCTNode, Connect6_Wrapper
+from contextlib import redirect_stdout
 
 class Connect6Game:
     def __init__(self, size=19):
@@ -8,6 +10,12 @@ class Connect6Game:
         self.board = np.zeros((size, size), dtype=int)  # 0: Empty, 1: Black, 2: White
         self.turn = 1  # 1: Black, 2: White
         self.game_over = False
+        self.agent = Connect6_UCTMCTS(
+            env=Connect6_Wrapper(self),
+            iterations=50,
+            exploration_constant=1.41,
+            rollout_depth=10,
+        )
 
     def reset_board(self):
         """Clears the board and resets the game."""
@@ -106,8 +114,13 @@ class Connect6Game:
             print("? Game over")
             return
 
-        empty_positions = [(r, c) for r in range(self.size) for c in range(self.size) if self.board[r, c] == 0]
-        selected = random.sample(empty_positions, 1)
+        # empty_positions = [(r, c) for r in range(self.size) for c in range(self.size) if self.board[r, c] == 0]
+        # selected = random.sample(empty_positions, 1)
+        # set stdout to stderr
+        with redirect_stdout(sys.stderr):
+            selected = [self.agent.predict_action(self.board)]
+        # set stdout back
+
         move_str = ",".join(f"{self.index_to_label(c)}{r+1}" for r, c in selected)
         
         self.play_move(color, move_str)
@@ -180,8 +193,8 @@ class Connect6Game:
                 self.process_command(line)
             except KeyboardInterrupt:
                 break
-            except Exception as e:
-                print(f"? Error: {str(e)}")
+            # except Exception as e:
+            #     print(f"? Error: {str(e)}")
 
 if __name__ == "__main__":
     game = Connect6Game()
