@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import copy
 import random
 import math
-from game2048 import Game2048Env
+from game2048.game2048 import Game2048Env
 
 def get_action(state, score):
     env = Game2048Env()

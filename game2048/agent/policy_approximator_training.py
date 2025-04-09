@@ -4,7 +4,7 @@ import random
 import numpy as np
 from collections import defaultdict
 from ntuple_td_learning import rotation_90, transpose, NTupleApproximator
-from game2048 import Game2048Env
+from game2048.game2048 import Game2048Env
 from td_mcts import TD_MCTS, TD_MCTS_Node
 import pickle
 
