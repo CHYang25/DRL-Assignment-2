@@ -1,4 +1,4 @@
-from game2048 import Game2048Env
+from game2048.game2048 import Game2048Env
 import copy
 import random
 import math
