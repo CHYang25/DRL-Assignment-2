@@ -147,53 +147,53 @@ def td_learning(env, approximator, num_episodes=50000, alpha=0.01, gamma=0.99, e
 
     return final_scores
 
+if __name__ == '__main__':
+    # TODO: Define your own n-tuple patterns
+    patterns = [
+        np.argwhere(np.array(
+            [[0, 0, 0, 0],
+            [1, 1, 0, 0],
+            [1, 1, 0, 0],
+            [1, 1, 0, 0],]
+        )),
+        np.argwhere(np.array(
+            [[0, 0, 0, 0],
+            [0, 1, 1, 0],
+            [0, 1, 1, 0],
+            [0, 1, 1, 0],]
+        )),
+        np.argwhere(np.array(
+            [[1, 0, 0, 0],
+            [1, 0, 0, 0],
+            [1, 1, 0, 0],
+            [1, 1, 0, 0],]
+        )),
+        np.argwhere(np.array(
+            [[0, 1, 0, 0],
+            [0, 1, 0, 0],
+            [0, 1, 1, 0],
+            [0, 1, 1, 0],]
+        )),
+        # np.argwhere(np.array(
+        #     [[0, 0, 0, 0],
+        #      [0, 1, 1, 0],
+        #      [0, 1, 1, 0],
+        #      [0, 0, 0, 0],]
+        # )),
+    ]
 
-# TODO: Define your own n-tuple patterns
-patterns = [
-    np.argwhere(np.array(
-        [[0, 0, 0, 0],
-         [1, 1, 0, 0],
-         [1, 1, 0, 0],
-         [1, 1, 0, 0],]
-    )),
-    np.argwhere(np.array(
-        [[0, 0, 0, 0],
-         [0, 1, 1, 0],
-         [0, 1, 1, 0],
-         [0, 1, 1, 0],]
-    )),
-    np.argwhere(np.array(
-        [[1, 0, 0, 0],
-         [1, 0, 0, 0],
-         [1, 1, 0, 0],
-         [1, 1, 0, 0],]
-    )),
-    np.argwhere(np.array(
-        [[0, 1, 0, 0],
-         [0, 1, 0, 0],
-         [0, 1, 1, 0],
-         [0, 1, 1, 0],]
-    )),
-    # np.argwhere(np.array(
-    #     [[0, 0, 0, 0],
-    #      [0, 1, 1, 0],
-    #      [0, 1, 1, 0],
-    #      [0, 0, 0, 0],]
-    # )),
-]
+    approximator = NTupleApproximator(board_size=4, patterns=patterns)
 
-approximator = NTupleApproximator(board_size=4, patterns=patterns)
+    env = Game2048Env()
 
-env = Game2048Env()
+    # Run TD-Learning training
+    # Note: To achieve significantly better performance, you will likely need to train for over 100,000 episodes.
+    # However, to quickly verify that your implementation is working correctly, you can start by running it for 1,000 episodes before scaling up.
+    final_scores = td_learning(env, approximator, num_episodes=100000, alpha=0.1, gamma=0.99, epsilon=0.1)
+    plt.plot(final_scores)
+    plt.xlabel("Episodes")
+    plt.ylabel("Average Score")
+    plt.title("N-tuple approximator")
+    plt.savefig('./n_tuple_td_learning.png')
 
-# Run TD-Learning training
-# Note: To achieve significantly better performance, you will likely need to train for over 100,000 episodes.
-# However, to quickly verify that your implementation is working correctly, you can start by running it for 1,000 episodes before scaling up.
-final_scores = td_learning(env, approximator, num_episodes=100000, alpha=0.1, gamma=0.99, epsilon=0.1)
-plt.plot(final_scores)
-plt.xlabel("Episodes")
-plt.ylabel("Average Score")
-plt.title("N-tuple approximator")
-plt.savefig('./n_tuple_td_learning.png')
-
-pickle.dump(approximator, open("./n-tuple-approximator.pkl", 'wb'))
+    pickle.dump(approximator, open("./n-tuple-approximator.pkl", 'wb'))
