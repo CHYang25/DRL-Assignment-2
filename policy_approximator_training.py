@@ -12,14 +12,14 @@ import pickle
 # Note: You have already defined transformation functions for patterns before.
 orig_action = lambda x: x
 
-rot90_action = lambda x: [2, 3, 1, 0][x]
+rot90_action = lambda x: [3, 2, 0, 1][x]
 rot180_action = lambda x: [1, 0, 3, 2][x]
-rot270_action = lambda x: [3, 2, 0, 1][x]
+rot270_action = lambda x: [2, 3, 1, 90][x]
 
 rot_trans_action = lambda x: [2, 3, 0, 1][x]
-rot90_trans_action = lambda x: [1, 0, 2, 3][x]
+rot90_trans_action = lambda x: [0, 1, 3, 2][x]
 rot180_trans_action = lambda x: [3, 2, 1, 0][x]
-rot270_trans_action = lambda x: [0, 1, 3, 2][x]
+rot270_trans_action = lambda x: [1, 0, 2, 3][x]
 
 action_transformations = [orig_action, rot90_action, rot180_action, rot270_action, rot_trans_action, rot90_trans_action, rot180_trans_action, rot270_trans_action]
 
@@ -100,8 +100,8 @@ class PolicyApproximator:
         gradient = target_distribution - distribution
         for idx, feature, action_trans in feature_indices:
             for a in self.actions:
-                a = action_trans(a)
-                self.weights[idx][feature][a] += alpha * gradient[a]
+                transformed_action = action_trans(a)
+                self.weights[idx][feature][transformed_action] += alpha * gradient[a]
 
 def self_play_training_policy_with_td_mcts(env, td_mcts, policy_approximator, num_episodes=50):
     for episode in range(num_episodes):
