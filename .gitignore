@@ -9,3 +9,4 @@ __pycache__/
 # ignore eval.py
 eval.py
 *.jar
+*.pkl
