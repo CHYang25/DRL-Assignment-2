@@ -8,7 +8,7 @@ import sys
 import numpy as np
 import torch
 
-from connect6_value_approximator import Connect6ValueNet
+from connect6_value_approximator import Connect6ValueApproximator
 
 # UCT Node for MCTS
 class Connect6_UCTNode:
@@ -27,22 +27,24 @@ class Connect6_UCTNode:
         self.visits = 0
         self.total_reward = 0.0
         self.untried_actions = [(r, c) for r in range(self.state.shape[0]) for c in range(self.state.shape[1]) if self.state[r, c] == 0]
+        self.locally_fully_expaned = False
 
     def fully_expanded(self):
 		# A node is fully expanded if no legal actions remain untried.
-        return len(self.untried_actions) == 0
-
+        return len(self.untried_actions) == 0 or self.locally_fully_expaned
+    
 
 class Connect6_UCTMCTS:
-    def __init__(self, env, iterations=10, exploration_constant=1.41, rollout_depth=10, device='mps'):
+    def __init__(self, env, iterations=100, exploration_constant=1.41, rollout_depth=100, local_region_size=8, device='cuda'):
         self.env = env
         self.iterations = iterations
         self.c = exploration_constant  # Balances exploration and exploitation
         self.rollout_depth = rollout_depth
         self.board_size = self.env.board_size
         self.action_space = self.board_size ** 2
-        self.value_approximator = Connect6ValueNet().to(device)
+        # self.value_approximator = Connect6ValueApproximator().to(device)
         self.device = device
+        self.local_region_size = local_region_size
 
     def create_env_from_state(self, state, score):
         """
@@ -65,21 +67,44 @@ class Connect6_UCTMCTS:
                 chd = child
         return chd
 
+    def random_sample_action(self, state, untried_action = None):
+        key_pos = np.argwhere(state != 0)
+        if key_pos.shape[0] == 0:
+            min_r = min_c = self.board_size // 2 - self.local_region_size // 2
+            max_r = max_c = self.board_size // 2 + self.local_region_size // 2
+        else:
+            min_r, min_c = key_pos[:, 0].min(), key_pos[:, 1].min()
+            max_r, max_c = key_pos[:, 0].max() + 1, key_pos[:, 1].max() + 1
+          
+        if max_r - min_r < self.local_region_size:
+            expand = (self.local_region_size - (max_r - min_r)) // 2
+            max_r = np.clip(max_r + expand, a_min=0, a_max=self.board_size)
+            min_r = np.clip(min_r - expand, a_min=0, a_max=self.board_size)
+        
+        if max_c - min_c < self.local_region_size:
+            expand = (self.local_region_size - (max_c - min_c)) // 2
+            max_c = np.clip(max_c + expand, a_min=0, a_max=self.board_size)
+            min_c = np.clip(min_c - expand, a_min=0, a_max=self.board_size)
+        
+        if untried_action is not None:
+            untried_action = np.array(untried_action)
+            mask = (untried_action[:, 0] >= min_r) & (untried_action[:, 0] < max_r) & \
+                        (untried_action[:, 1] >= min_c) & (untried_action[:, 1] < max_c)
+            return [tuple(random.choice(untried_action[mask]))], untried_action[mask].shape[0] == 1
+        else:
+            return [random.choice([(r, c) for r in range(min_r, max_r) for c in range(min_c, max_c) if state[r, c] == 0])]
+
     def rollout(self, sim_env, depth):
         # TODO: Perform a random rollout from the current state up to the specified depth.
-        # state = sim_env.game.board
-        # for _ in range(depth):
-        #     action = [random.choice([(r, c) for r in range(state.shape[0]) for c in range(state.shape[1]) if state[r, c] == 0])]
-        #     state, reward, done, _ = sim_env.step(action)
-        #     if done:
-        #         break
-        # return reward
-        state = torch.from_numpy(sim_env.game.board).long()
-        empty = (state == 0).float()
-        player = (state == 1).float()
-        opponent = (state == 2).float()
-        state_input = torch.stack((empty, player, opponent), dim=0).unsqueeze(dim=0).to(self.device)
-        return self.value_approximator(state_input).item()
+        state = sim_env.game.board
+        for _ in range(depth):
+            action = self.random_sample_action(state)
+            state, reward, done, _ = sim_env.step(action)
+            if done:
+                break
+        return reward
+        state = sim_env.game.board
+        return self.value_approximator.value(state)
 
     def backpropagate(self, node, reward):
         # TODO: Propagate the reward up the tree, updating visit counts and total rewards.
@@ -105,14 +130,15 @@ class Connect6_UCTMCTS:
 
         # TODO: Expansion: if the node has untried actions, expand one.
         if not node.fully_expanded(): # this suggests that node is not a terminal node, and the node still could be expanded
-            action = random.choice(node.untried_actions)
-            node.untried_actions.remove(action)
+            action, locally_fully_expanded = self.random_sample_action(node.state, node.untried_actions)
+            node.untried_actions.remove(action[0])
+            node.locally_fully_expaned = locally_fully_expanded
             sim_env = self.create_env_from_state(node.state, node.score)
-            state, reward, done, _ = sim_env.step([action])
+            state, reward, done, _ = sim_env.step(action)
             # create new node
-            child = Connect6_UCTNode(state, 0, parent=node, action=action)
+            child = Connect6_UCTNode(state, 0, parent=node, action=action[0])
             sim_env = self.create_env_from_state(child.state, child.score)
-            node.children.update({action: child})
+            node.children.update({action[0]: child})
 
             node = child
 
