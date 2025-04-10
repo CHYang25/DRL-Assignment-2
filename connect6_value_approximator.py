@@ -38,7 +38,24 @@ class Connect6ValueNet(nn.Module):
         x = self.feature_extractor(x)
         x = self.head(x)
         return x
+    
+class Connect6ValueApproximator(Connect6ValueNet):
 
+    def __init__(self, board_size=19):
+        super().__init__(board_size)
+
+    def value(self, state):
+        if isinstance(state, np.ndarray):
+            state = torch.from_numpy(state).long()
+
+        empty = (state == 0).float()
+        player = (state == 1).float()
+        opponent = (state == 2).float()
+        state_input = torch.stack((empty, player, opponent), dim=0).unsqueeze(dim=0).to(self.device)
+        return self.forward(state_input).cpu().item()
+
+    def update(self):
+        pass
 
 def td_learning(env, approximator, num_episodes=50000, alpha=0.01, gamma=0.99, epsilon=0.1):
     """
@@ -46,7 +63,7 @@ def td_learning(env, approximator, num_episodes=50000, alpha=0.01, gamma=0.99, e
 
     Args:
         env: The 2048 game environment.
-        approximator: NTupleApproximator instance.
+        approximator: Connect6ValueNet instance.
         num_episodes: Number of training episodes.
         alpha: Learning rate.
         gamma: Discount factor.
@@ -97,7 +114,6 @@ def td_learning(env, approximator, num_episodes=50000, alpha=0.01, gamma=0.99, e
         if (episode + 1) % 100 == 0:
             avg_score = np.mean(final_scores[-100:])
             success_rate = np.sum(success_flags[-100:]) / 100
-            print(sum([len(s) for s in approximator.weights]), sum([12**len(x) for x in approximator.symmetry_patterns]))
             print(f"Episode {episode+1}/{num_episodes} | Avg Score: {avg_score:.2f} | Success Rate: {success_rate:.2f}")
 
     return final_scores
