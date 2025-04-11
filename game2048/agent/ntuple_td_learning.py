@@ -118,10 +118,6 @@ def td_learning(env, approximator, num_episodes=50000, alpha=0.01, gamma=0.99, e
                 values.append(reward + gamma*approximator.value(next_state))
 
             action = legal_moves[np.argmax(values)]
-                # values = np.array(values)
-                # action = legal_moves[np.random.choice(np.where(values == values.max())[0])]
-            # else:
-            #     action = np.random.choice(4, 1)[0]
 
             next_state, new_score, done, _ = env.step(action)
             incremental_reward = new_score - previous_score
@@ -174,12 +170,6 @@ if __name__ == '__main__':
             [0, 1, 1, 0],
             [0, 1, 1, 0],]
         )),
-        # np.argwhere(np.array(
-        #     [[0, 0, 0, 0],
-        #      [0, 1, 1, 0],
-        #      [0, 1, 1, 0],
-        #      [0, 0, 0, 0],]
-        # )),
     ]
 
     approximator = NTupleApproximator(board_size=4, patterns=patterns)

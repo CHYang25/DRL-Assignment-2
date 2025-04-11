@@ -75,7 +75,7 @@ class TD_MCTS:
                 break
         # print(reward, self.approximator.value(state))
         estimate = self.approximator.value(state) / 2000
-        
+
         return reward + estimate
 
     def backpropagate(self, node, reward):

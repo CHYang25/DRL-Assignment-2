@@ -99,10 +99,12 @@ class PolicyApproximator:
                 logits += np.array([self.weights[idx][feature][a] for a in self.actions])
 
         distribution = softmax(logits)
+        # print(logits)
+        # print(distribution)
         return np.random.choice(4, 1, p=distribution)[0]
 
 
-    def update(self, board, target_distribution, alpha=0.1):
+    def update(self, board, target_distribution, alpha=0.01):
         # TODO: Update policy based on the target distribution.
         logits = np.zeros(4)
         feature_indices = []
@@ -145,41 +147,49 @@ def self_play_training_policy_with_td_mcts(env, td_mcts, policy_approximator, nu
         print(f"Episode {episode+1}/{num_episodes} finished, final score: {env.score}")
 
 if __name__ == '__main__':
+
+    # TODO: Define your own pattern
+
     env = Game2048Env()
 
     # TODO: Define your own pattern
     patterns = [
         np.argwhere(np.array(
-            [[0, 0, 0, 0],
-            [1, 1, 0, 0],
-            [1, 1, 0, 0],
-            [1, 1, 0, 0],]
-        )),
-        np.argwhere(np.array(
-            [[0, 0, 0, 0],
-            [0, 1, 1, 0],
-            [0, 1, 1, 0],
-            [0, 1, 1, 0],]
-        )),
-        np.argwhere(np.array(
             [[1, 0, 0, 0],
             [1, 0, 0, 0],
-            [1, 1, 0, 0],
-            [1, 1, 0, 0],]
+            [1, 0, 0, 0],
+            [1, 0, 0, 0],]
         )),
         np.argwhere(np.array(
             [[0, 1, 0, 0],
             [0, 1, 0, 0],
+            [0, 1, 0, 0],
+            [0, 1, 0, 0],]
+        )),
+        np.argwhere(np.array(
+            [[0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [1, 1, 0, 0],
+            [1, 1, 0, 0],]
+        )),
+        np.argwhere(np.array(
+            [[0, 0, 0, 0],
+            [0, 0, 0, 0],
             [0, 1, 1, 0],
             [0, 1, 1, 0],]
         )),
+        np.argwhere(np.array(
+            [[0, 0, 0, 0],
+            [0, 1, 1, 0],
+            [0, 1, 1, 0],
+            [0, 0, 0, 0],]
+        )),
     ]
 
-    approximator = pickle.load(open('./n-tuple-approximator.pkl', 'rb'))
+    approximator = pickle.load(open('/content/n-tuple-approximator.pkl', 'rb'))
 
     policy_approximator = PolicyApproximator(board_size=4, patterns=patterns)
-    td_mcts = TD_MCTS(env, approximator, iterations=50, exploration_constant=1.41, rollout_depth=10, gamma=0.99)
+    td_mcts = TD_MCTS(env, approximator, iterations=50, exploration_constant=1.41, rollout_depth=20, gamma=0.99)
 
-    self_play_training_policy_with_td_mcts(env, td_mcts, policy_approximator, num_episodes=50)
-
-    pickle.dump(policy_approximator, open("./policy_approximator.pkl", "wb"))
+    self_play_training_policy_with_td_mcts(env, td_mcts, policy_approximator, num_episodes=10)
+    pickle.dump(policy_approximator, open("/content/policy_approximator.pkl", "wb"))
