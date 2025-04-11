@@ -10,3 +10,4 @@ __pycache__/
 eval.py
 *.jar
 *.pkl
+ludii*

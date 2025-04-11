@@ -12,9 +12,10 @@ class Connect6Game:
         self.game_over = False
         self.agent = Connect6_UCTMCTS(
             env=Connect6_Wrapper(self),
-            iterations=50,
+            iterations=3000,
             exploration_constant=1.41,
-            rollout_depth=10,
+            rollout_depth=0,
+            local_region_size=12
         )
 
     def reset_board(self):
@@ -22,6 +23,7 @@ class Connect6Game:
         self.board.fill(0)
         self.turn = 1
         self.game_over = False
+        self.agent.env.reset()
         print("= ", flush=True)
 
     def set_board_size(self, size):
@@ -112,6 +114,7 @@ class Connect6Game:
         """Generates a random move for the computer."""
         if self.game_over:
             print("? Game over")
+            self.agent.first_round = True
             return
 
         # empty_positions = [(r, c) for r in range(self.size) for c in range(self.size) if self.board[r, c] == 0]

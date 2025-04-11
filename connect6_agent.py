@@ -19,7 +19,7 @@ class Connect6_UCTNode:
         parent: parent node (None for root)
         action: action taken from parent to reach this node
         """
-        self.state = state
+        self.state = state.copy()
         self.score = score
         self.parent = parent
         self.action = action
@@ -35,16 +35,17 @@ class Connect6_UCTNode:
     
 
 class Connect6_UCTMCTS:
-    def __init__(self, env, iterations=100, exploration_constant=1.41, rollout_depth=100, local_region_size=8, device='cuda'):
+    def __init__(self, env, iterations=50, exploration_constant=1.41, rollout_depth=10, local_region_size=8, device='cuda'):
         self.env = env
         self.iterations = iterations
         self.c = exploration_constant  # Balances exploration and exploitation
         self.rollout_depth = rollout_depth
         self.board_size = self.env.board_size
         self.action_space = self.board_size ** 2
-        # self.value_approximator = Connect6ValueApproximator().to(device)
+        self.value_approximator = Connect6ValueApproximator()
         self.device = device
         self.local_region_size = local_region_size
+        self.first_round = True # In the first round, the agent should first predict from placed = 1. BUT for the rest, the agent should predict from placed = 0.
 
     def create_env_from_state(self, state, score):
         """
@@ -53,6 +54,8 @@ class Connect6_UCTMCTS:
         new_env = copy.deepcopy(self.env)
         new_env.game.board = state.copy()
         new_env.score = score
+        if not self.first_round:
+            new_env.placed = 0
         return new_env
 
     def select_child(self, node):
@@ -97,14 +100,15 @@ class Connect6_UCTMCTS:
     def rollout(self, sim_env, depth):
         # TODO: Perform a random rollout from the current state up to the specified depth.
         state = sim_env.game.board
+        acc_reward = 0
         for _ in range(depth):
             action = self.random_sample_action(state)
             state, reward, done, _ = sim_env.step(action)
+            acc_reward += reward
             if done:
                 break
-        return reward
-        state = sim_env.game.board
-        return self.value_approximator.value(state)
+
+        return acc_reward + self.value_approximator.value(state)
 
     def backpropagate(self, node, reward):
         # TODO: Propagate the reward up the tree, updating visit counts and total rewards.
@@ -167,11 +171,14 @@ class Connect6_UCTMCTS:
     def predict_action(self, state):
 
         root = Connect6_UCTNode(state, 0)
+        print(state, file=sys.stderr)
+        print(self.value_approximator.value(state), file=sys.stderr)
         
         for _ in range(self.iterations):
             self.run_simulation(root)
 
         best_action, _ = self.best_action_distribution(root)
+        self.first_round = False
         return best_action
 
 
@@ -182,11 +189,13 @@ class Connect6_Wrapper:
         self.board_size = env.size
         self.game = env
         self.current_player = 1  # 1 for Black, 2 for White
+        self.placed = 1
         self.score = 0
 
     def reset(self, *, seed=None, options=None):
-        self.game.reset_board()
         self.current_player = 1
+        self.placed = 1
+        self.score = 0
         return self._get_obs(), {}
 
     def step(self, action):
@@ -208,7 +217,8 @@ class Connect6_Wrapper:
             else:
                 reward = 0  # draw
 
-        self.current_player = 3 - self.current_player
+        self.placed = 1 - self.placed
+        self.current_player = 3 - self.current_player + self.placed
         return self._get_obs(), reward, done, {}
 
     def _get_obs(self):

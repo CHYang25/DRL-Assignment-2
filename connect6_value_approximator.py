@@ -12,47 +12,209 @@ import torch.nn.functional as F
 import torch
 import torch.nn as nn
 
-class Connect6ValueNet(nn.Module):
-    def __init__(self, board_size=19):
-        super().__init__()
-        self.board_size = board_size
-        self.feature_extractor = nn.Sequential(
-            nn.Conv2d(3, 128, kernel_size=5, padding=2),
-            nn.ReLU(),
-            nn.Conv2d(128, 128, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(128, 128, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(128, 128, kernel_size=3, padding=1),
-            nn.ReLU(),
-        )
-        self.head = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(128 * board_size * board_size, 256),
-            nn.ReLU(),
-            nn.Linear(256, 1),
-            nn.Sigmoid()
-        )
+WIN_WEIGHT = 1
+OFF_5_WEIGHT = 0.12
+OFF_4_WEIGHT = 0.12
+OFF_3_WEIGHT = 0.01
 
-    def forward(self, x):
-        x = self.feature_extractor(x)
-        x = self.head(x)
-        return x
+LOSE_WEIGHT = -1
+DEF_5_WEIGHT = -1
+DEF_4_WEIGHT = -1
+DEF_3_WEIGHT = -0.01
+
+def pattern_generator():
+    ## Offensive Pattern
+    ## These Patterns will be assigned with positive values
+    off_patterns = np.array([
+        # Win Pattern:
+        [1, 1, 1, 1, 1, 1],
+
+        # Live 5: One more to go then the opponent will win
+        [1, 1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 0, 1],
+        [1, 1, 1, 0, 1, 1],
+
+        # Live 4: 1 more to go then the opponent will win
+        [1, 1, 1, 1, 0, 0],
+        [0, 1, 1, 1, 1, 0],
+        [1, 1, 1, 0, 1, 0],
+        [1, 1, 1, 0, 0, 1],
+        [1, 1, 0, 1, 1, 0],
+        [1, 1, 0, 0, 1, 1],
+        [1, 1, 0, 1, 0, 1],
+        [1, 0, 1, 1, 0, 1],
+
+        # Live 3: One more to become Live 4, 1 more to become Live 5
+        [1, 1, 1, 0, 0, 0],
+        [0, 1, 1, 1, 0, 0],
+        [1, 1, 0, 1, 0, 0],
+        [0, 1, 1, 0, 1, 0],
+        [0, 0, 1, 1, 0, 1],
+        [1, 0, 1, 0, 1, 0],
+        [1, 0, 1, 0, 0, 1]
+    ])
+
+    off_pattern_weight = np.array([
+        WIN_WEIGHT,
+
+        OFF_5_WEIGHT,
+        OFF_5_WEIGHT,
+        OFF_5_WEIGHT,
+
+        OFF_4_WEIGHT,
+        OFF_4_WEIGHT,
+        OFF_4_WEIGHT,
+        OFF_4_WEIGHT,
+        OFF_4_WEIGHT,
+        OFF_4_WEIGHT,
+        OFF_4_WEIGHT,
+        OFF_4_WEIGHT,
+
+        OFF_3_WEIGHT,
+        OFF_3_WEIGHT,
+        OFF_3_WEIGHT,
+        OFF_3_WEIGHT,
+        OFF_3_WEIGHT,
+        OFF_3_WEIGHT,
+        OFF_3_WEIGHT
+    ])
+
+    ## Defensive Pattern
+    ## These Patterns will be assigned with negative values
+    def_patterns = off_patterns * 2
+    def_pattern_weight = np.array([
+        LOSE_WEIGHT,
+
+        DEF_5_WEIGHT,
+        DEF_5_WEIGHT,
+        DEF_5_WEIGHT,
+
+        DEF_4_WEIGHT,
+        DEF_4_WEIGHT,
+        DEF_4_WEIGHT,
+        DEF_4_WEIGHT,
+        DEF_4_WEIGHT,
+        DEF_4_WEIGHT,
+        DEF_4_WEIGHT,
+        DEF_4_WEIGHT,
+
+        DEF_3_WEIGHT,
+        DEF_3_WEIGHT,
+        DEF_3_WEIGHT,
+        DEF_3_WEIGHT,
+        DEF_3_WEIGHT,
+        DEF_3_WEIGHT,
+        DEF_3_WEIGHT
+    ])
+    return np.concatenate((off_patterns, def_patterns), axis=0), np.concatenate((off_pattern_weight, def_pattern_weight), axis=0)
     
-class Connect6ValueApproximator(Connect6ValueNet):
+def generate_all_orientations(patterns, weights):
+    """Generate all mirrored and directional versions of each pattern."""
+    all_patterns = []
+    all_weights = []
+
+    for pattern, weight in zip(patterns, weights):
+        base = np.array(pattern)
+
+        # Reshape to 1D horizontal pattern
+        horiz = base.reshape(1, -1)
+
+        # Vertical is transpose of horizontal
+        vert = horiz.T
+        
+        # Diagonal (from top-left to bottom-right)
+        diag_ = np.eye(len(base), dtype=int)
+        diag_main = diag_ * horiz[0] - (1 - diag_)
+        diag_main_flipped = np.fliplr(diag_main)
+
+        # Add mirrored version
+        horiz_flipped = np.fliplr(horiz)
+        if (horiz_flipped == horiz).all():
+            all_patterns.extend([
+                horiz, vert, diag_main, diag_main_flipped
+            ])
+
+            all_weights.extend([weight for _ in range(4)])
+
+        else:
+            vert_flipped = horiz_flipped.T
+            diag_anti = diag_ * horiz_flipped[0] - (1 - diag_)
+            diag_anti_flipped = np.fliplr(diag_anti)
+
+            # Add all to list
+            all_patterns.extend([
+                horiz, horiz_flipped,
+                vert, vert_flipped,
+                diag_main, diag_main_flipped,
+                diag_anti, diag_anti_flipped
+            ])
+
+            all_weights.extend([weight for _ in range(8)])
+
+    return all_patterns, all_weights
+
+class Connect6ValueApproximator:
 
     def __init__(self, board_size=19):
-        super().__init__(board_size)
+        patterns, weights = pattern_generator()
+        all_patterns, all_weights = generate_all_orientations(patterns, weights)
 
-    def value(self, state):
-        if isinstance(state, np.ndarray):
-            state = torch.from_numpy(state).long()
+        # Convert patterns to 6x6 tensors (padded where needed)
+        kernel_list = []
+        for pattern in all_patterns:
+            padded = torch.ones((6, 6), dtype=torch.float32) * -1
+            h, w = pattern.shape
+            padded[:h, :w] = torch.tensor(pattern.copy(), dtype=torch.float32)
+            kernel_list.append(padded)
 
-        empty = (state == 0).float()
-        player = (state == 1).float()
-        opponent = (state == 2).float()
-        state_input = torch.stack((empty, player, opponent), dim=0).unsqueeze(dim=0).to(self.device)
-        return self.forward(state_input).cpu().item()
+        self.kernels = torch.stack(kernel_list).unsqueeze(1)  # (N, 1, 6, 6)
+        self.weights = torch.tensor(all_weights, dtype=torch.float32)
+
+    def value(self, board):
+        board_tensor = torch.tensor(board.copy(), dtype=torch.float32).unsqueeze(0).unsqueeze(0)  # (1, 1, H, W)
+
+        # Extract all 6x6 sliding windows into flattened patches
+        unfolded = F.unfold(board_tensor, kernel_size=(6, 6))  # (1, 36, L)
+        unfolded = unfolded.squeeze(0).T  # (L, 36)
+
+        kernels_flat = self.kernels.view(self.kernels.size(0), -1)  # (N, 36)
+
+        # Compare all patterns against all patches (strict match)
+        matches = (unfolded[None, :, :] == kernels_flat[:, None, :])  # (N, L, 36)
+        # mask the don't-care positions (-1), make them true
+        mask = (kernels_flat[:, None, :] == -1).expand(-1, matches.shape[1], -1)
+        matches = matches | mask
+        
+        exact_matches = matches.all(dim=2).float()  # (N, L), 1 if full match
+
+        match_counts = exact_matches.sum(dim=1)  # (N,)
+        total_value = torch.dot(match_counts, self.weights)  # scalar
+
+        return total_value.item()
+
+    # def match_pattern(self, board, pattern, weight):
+    #     """Check if a pattern exists anywhere in the board."""
+    #     board = np.array(board)
+    #     p_rows, p_cols = pattern.shape
+    #     b_rows, b_cols = board.shape
+        
+    #     acc_value = 0
+
+    #     for i in range(b_rows - p_rows + 1):
+    #         for j in range(b_cols - p_cols + 1):
+    #             sub_board = board[i:i+p_rows, j:j+p_cols]
+    #             # A match occurs if all non-zero entries in the pattern match the board
+    #             mask = (pattern != 0)
+    #             if np.array_equal(sub_board[mask], pattern[mask]):
+    #                 acc_value += weight
+
+    #     return acc_value
+
+    # def value(self, state):
+    #     value = 0
+    #     for pattern, weight in zip(self.all_patterns, self.all_weights):
+    #         value += self.match_pattern(state, pattern, weight)
+    #     return value
 
     def update(self):
         pass
