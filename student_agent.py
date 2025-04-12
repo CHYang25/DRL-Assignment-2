@@ -31,13 +31,13 @@ def expectimax(state, score, depth=0):
     if depth % 2 == 0: 
         for action in range(4):
             sim_env = create_env_from_state(state, score)
-            next_state, reward, done, _ = sim_env.step()
+            next_state, reward, done, _ = sim_env.step(action)
             new_scores.appned(expectimax(next_state, reward + score, depth=depth+1))
         return max(new_scores), np.argmax(new_scores)
     else:
         for action in range(4):
             sim_env = create_env_from_state(state, score)
-            next_state, reward, done, _ = sim_env.step()
+            next_state, reward, done, _ = sim_env.step(action)
             new_scores.append(expectimax(next_state, reward + score, depth=depth+1))
         return sum(new_scores) / 4, -1
 
@@ -47,3 +47,5 @@ def get_action(state, score):
     return action
 
 
+if __name__ == '__main__':
+    print(approximator)
