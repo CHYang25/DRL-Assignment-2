@@ -23,7 +23,7 @@ jobs:
       with:
         submodules: recursive
         # path: game2048/agent/DRL-Assignment-2-Checkpoint
-        token: ${{ secrets.PAT_TOKEN }}
+        # token: ${{ secrets.PAT_TOKEN }}
 
     - name: 1. Creating virtual env
       uses: actions/setup-python@v4
