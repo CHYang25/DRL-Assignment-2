@@ -32,7 +32,7 @@ def expectimax(state, score, depth=0):
         for action in range(4):
             sim_env = create_env_from_state(state, score)
             next_state, reward, done, _ = sim_env.step(action)
-            new_scores.appned(expectimax(next_state, reward + score, depth=depth+1))
+            new_scores.append(expectimax(next_state, reward + score, depth=depth+1))
         return max(new_scores), np.argmax(new_scores)
     else:
         for action in range(4):
