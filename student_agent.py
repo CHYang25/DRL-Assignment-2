@@ -25,7 +25,7 @@ MAX_DEPTH = 10
 
 def expectimax(state, score, depth=0):
     if depth == MAX_DEPTH:
-        return score + approximator.value(state)
+        return score + approximator.value(state), -1
     
     new_scores = []
     if depth % 2 == 0: 
