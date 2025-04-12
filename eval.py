@@ -14,6 +14,7 @@ import random
 import sys
 import importlib
 import env
+from game2048.agent.ntuple_td_learning import NTupleApproximator
 
 
 
