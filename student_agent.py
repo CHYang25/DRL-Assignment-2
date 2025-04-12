@@ -11,7 +11,7 @@ import math
 from game2048.agent.ntuple_td_learning import NTupleApproximator
 from game2048.game2048 import Game2048Env
 
-approximator = pickle.load(open("./game2048/agent/n-tuple-approximator.pkl", "rb"))
+approximator = pickle.load(open("./game2048/agent/DRL-Assignment-2-Checkpoint/n-tuple-approximator.pkl", "rb"))
 
 env = Game2048Env()
 

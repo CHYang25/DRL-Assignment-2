@@ -1,0 +1,3 @@
+[submodule "game2048/agent/DRL-Assignment-2-Checkpoint"]
+	path = game2048/agent/DRL-Assignment-2-Checkpoint
+	url = https://github.com/CHYang25/DRL-Assignment-2-Checkpoint.git
