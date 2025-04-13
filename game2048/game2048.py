@@ -122,7 +122,7 @@ class Game2048Env(gym.Env):
 
         return True
 
-    def step(self, action):
+    def step(self, action, add_tile = True):
         assert self.action_space.contains(action), "Invalid action"
 
         if action == 0:
@@ -138,13 +138,13 @@ class Game2048Env(gym.Env):
 
         self.last_move_valid = moved
 
-        if moved:
+        if moved and add_tile:
             self.add_random_tile()
 
         done = self.is_game_over()
 
         return self.board, self.score, done, {}
-
+    
     def render(self, mode="human", action=None):
         fig, ax = plt.subplots(figsize=(4, 4))
         ax.set_xticks([])
