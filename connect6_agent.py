@@ -46,6 +46,7 @@ class Connect6_UCTMCTS:
         self.device = device
         self.local_region_size = local_region_size
         self.first_round = True # In the first round, the agent should first predict from placed = 1. BUT for the rest, the agent should predict from placed = 0.
+        self.player = 1
 
     def create_env_from_state(self, state, score):
         """
@@ -169,6 +170,19 @@ class Connect6_UCTMCTS:
         return best_action, distribution
     
     def predict_action(self, state):
+
+        if np.sum(state) == 1:
+            self.first_round = False
+            self.env.placed = 0
+            self.env.current_player = 1
+            self.player = 2
+
+        if self.player == 2:
+            swapped = state.copy()
+            swapped[state == 1] = -1  # Temporarily mark 1s as -1 to avoid conflict
+            swapped[state == 2] = 1
+            swapped[swapped == -1] = 2
+            state = swapped
 
         root = Connect6_UCTNode(state, 0)
         print(state, file=sys.stderr)

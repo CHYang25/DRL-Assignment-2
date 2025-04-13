@@ -13,8 +13,8 @@ import torch
 import torch.nn as nn
 
 WIN_WEIGHT = 1
-OFF_5_WEIGHT = 0.12
-OFF_4_WEIGHT = 0.12
+OFF_5_WEIGHT = 0.1
+OFF_4_WEIGHT = 0.1
 OFF_3_WEIGHT = 0.01
 
 LOSE_WEIGHT = -1

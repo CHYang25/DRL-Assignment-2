@@ -116,7 +116,7 @@ class Connect6Game:
             print("? Game over")
             self.agent.first_round = True
             return
-
+        
         # empty_positions = [(r, c) for r in range(self.size) for c in range(self.size) if self.board[r, c] == 0]
         # selected = random.sample(empty_positions, 1)
         # set stdout to stderr
