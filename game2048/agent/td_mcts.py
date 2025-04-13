@@ -1,8 +1,11 @@
 import copy
 import random
 import math
+from math import inf
 import numpy as np
+from game2048.agent.ntuple_td_learning import NTupleApproximator
 from game2048.game2048 import Game2048Env
+from game2048.agent.expectimax import expectimax
 
 env = Game2048Env()
 
@@ -42,7 +45,10 @@ class TD_MCTS:
         self.c = exploration_constant
         self.rollout_depth = rollout_depth
         self.gamma = gamma
-        # self.value_avg = sum([sum(w.values()) for w in self.approximator.weights]) / sum([len(w) for w in approximator.weights])
+        self.max_value = -inf
+        self.min_value = inf
+        # self.max_value = max([max(w.values()) for w in self.approximator.weights])
+        # self.min_value = min([min(w.values()) for w in self.approximator.weights])
         # print(self.value_avg)
         # self.value_norm = 20000
 
@@ -57,8 +63,9 @@ class TD_MCTS:
         # TODO: Use the UCT formula: Q + c * sqrt(log(parent.visits)/child.visits) to select the best child.
         max_uct = -1
         chd = None
+            
         for act, child in node.children.items():
-            # print(node.visits, child.visits)
+            # print(child.total_reward, node.visits, child.visits)
             uct = child.total_reward + self.c * math.sqrt(math.log(node.visits) / child.visits)
             if uct > max_uct:
                 max_uct = uct
@@ -68,15 +75,25 @@ class TD_MCTS:
     def rollout(self, sim_env, depth):
         # TODO: Perform a random rollout until reaching the maximum depth or a terminal state.
         # TODO: Use the approximator to evaluate the final state.
+        reward = 0
         for _ in range(depth):
             action = np.random.choice(4, 1)[0]
             state, reward, done, _ = sim_env.step(action)
             if done:
+                reward = -10000000
                 break
         # print(reward, self.approximator.value(state))
-        estimate = self.approximator.value(state) / 2000
-
-        return reward + estimate
+        estimate = reward + self.approximator.value(state)
+        self.max_value = max(self.max_value, estimate)
+        self.min_value = min(self.min_value, estimate)
+        return (estimate - self.min_value) / (self.max_value - self.min_value)
+    
+    # def rollout(self, sim_env, depth):
+    #     legal_actions = [a for a in range(4) if sim_env.is_move_legal(a)]
+    #     score, _ = expectimax(self.approximator, sim_env.board, sim_env.score, legal_actions)
+    #     self.max_value = max(self.max_value, score)
+    #     self.min_value = min(self.min_value, score)
+    #     return score
 
     def backpropagate(self, node, reward):
         # TODO: Propagate the obtained reward back up the tree.
@@ -132,3 +149,33 @@ class TD_MCTS:
                 best_visits = child.visits
                 best_action = action
         return best_action, distribution
+    
+if __name__ == '__main__':
+    import pickle
+
+    env = Game2048Env()
+    approximator = pickle.load(open("./game2048/agent/DRL-Assignment-2-Checkpoint/n-tuple-approximator.pkl", "rb"))
+    td_mcts = TD_MCTS(env, approximator, iterations=500, exploration_constant=1.41, rollout_depth=10, gamma=0.99)
+
+    state = env.reset()
+    env.render()
+
+    done = False
+    while not done:
+        # Create the root node from the current state
+        root = TD_MCTS_Node(state, env.score)
+
+        # Run multiple simulations to build the MCTS tree
+        for _ in range(td_mcts.iterations):
+            td_mcts.run_simulation(root)
+
+        # Select the best action (based on highest visit count)
+        best_act, _ = td_mcts.best_action_distribution(root)
+        print("TD-MCTS selected action:", best_act, "Score:", env.score)
+        print("State:\n", state)
+
+        # Execute the selected action and update the state
+        state, reward, done, _ = env.step(best_act)
+        env.render(action=best_act)
+
+    print("Game over, final score:", env.score)
