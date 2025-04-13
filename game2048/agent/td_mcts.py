@@ -3,9 +3,9 @@ import random
 import math
 from math import inf
 import numpy as np
-from ntuple_td_learning import NTupleApproximator
+from game2048.agent.ntuple_td_learning import NTupleApproximator
 from game2048.game2048 import Game2048Env
-from expectimax import expectimax
+from game2048.agent.expectimax import expectimax
 
 env = Game2048Env()
 
