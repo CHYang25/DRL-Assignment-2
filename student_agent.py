@@ -15,7 +15,7 @@ from game2048.agent.td_mcts import TD_MCTS, TD_MCTS_Node
 env = Game2048Env()
 
 approximator = pickle.load(open("./game2048/agent/DRL-Assignment-2-Checkpoint/n-tuple-approximator.pkl", "rb"))
-td_mcts = TD_MCTS(env, approximator, iterations=32, exploration_constant=1.41, rollout_depth=10, gamma=0.99)
+td_mcts = TD_MCTS(env, approximator, iterations=200, exploration_constant=1.41, rollout_depth=10, gamma=0.99)
 
 
 # def create_env_from_state(state, score):
