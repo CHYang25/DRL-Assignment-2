@@ -11,11 +11,13 @@ import math
 from game2048.agent.ntuple_td_learning import NTupleApproximator
 from game2048.game2048 import Game2048Env
 from game2048.agent.td_mcts import TD_MCTS, TD_MCTS_Node
+from game2048.agent.heuristic_mcts import HEU_MCTS, HEU_MCTS_Node
 
 env = Game2048Env()
 
 approximator = pickle.load(open("./game2048/agent/DRL-Assignment-2-Checkpoint/n-tuple-approximator.pkl", "rb"))
-td_mcts = TD_MCTS(env, approximator, iterations=500, exploration_constant=1.41, rollout_depth=10, gamma=0.99)
+heu_mcts = HEU_MCTS(env, iterations=500, exploration_constant=1.41, rollout_depth=10, gamma=0.99)
+# td_mcts = TD_MCTS(env, approximator, iterations=200, exploration_constant=1.41, rollout_depth=10, gamma=0.99)
 
 
 # def create_env_from_state(state, score):
@@ -73,11 +75,11 @@ td_mcts = TD_MCTS(env, approximator, iterations=500, exploration_constant=1.41, 
 def get_action(state, score):
     root = TD_MCTS_Node(state, score)
 
-    for _ in range(td_mcts.iterations):
-        td_mcts.run_simulation(root)
+    for _ in range(heu_mcts.iterations):
+        heu_mcts.run_simulation(root)
 
     # Select the best action (based on highest visit count)
-    best_act, _ = td_mcts.best_action_distribution(root)
+    best_act, _ = heu_mcts.best_action_distribution(root)
 
     return best_act
 
