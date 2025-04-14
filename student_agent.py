@@ -16,7 +16,7 @@ from game2048.agent.heuristic_mcts import HEU_MCTS, HEU_MCTS_Node
 env = Game2048Env()
 
 approximator = pickle.load(open("./game2048/agent/DRL-Assignment-2-Checkpoint/n-tuple-approximator.pkl", "rb"))
-heu_mcts = HEU_MCTS(env, iterations=500, exploration_constant=1.41, rollout_depth=10, gamma=0.99)
+heu_mcts = HEU_MCTS(env, iterations=250, exploration_constant=1.41, rollout_depth=15, gamma=0.99)
 # td_mcts = TD_MCTS(env, approximator, iterations=200, exploration_constant=1.41, rollout_depth=10, gamma=0.99)
 
 
