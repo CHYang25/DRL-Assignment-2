@@ -108,12 +108,12 @@ class HEU_MCTS:
         # TODO: Propagate the obtained reward back up the tree.
         while node.parent:
             node.visits += 1
-            node.total_reward += (reward - node.total_reward) / node.visits
+            node.total_reward += reward
             node = node.parent
 
         # the root needs update as well
         node.visits += 1
-        node.total_reward += (reward - node.total_reward) / node.visits
+        node.total_reward += reward
 
 
     def run_simulation(self, root):
@@ -173,7 +173,7 @@ if __name__ == '__main__':
             # Create the root node from the current state
             root = HEU_MCTS_Node(env, state, env.score)
 
-            heu_mcts.iterations = len(root.untried_actions) + 1
+            # heu_mcts.iterations = len(root.untried_actions) + 1
             # Run multiple simulations to build the MCTS tree
             for _ in range(heu_mcts.iterations):
                 heu_mcts.run_simulation(root)
