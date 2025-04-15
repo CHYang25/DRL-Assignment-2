@@ -23,7 +23,7 @@ def get_action(state, score):
     env = heu_mcts.create_env_from_state(state, score)
     root = HEU_MCTS_Node(env, state, score)
 
-    heu_mcts.iterations = len(root.untried_actions) + 1
+    # heu_mcts.iterations = len(root.untried_actions) + 1
     for _ in range(heu_mcts.iterations):
         heu_mcts.run_simulation(root)
 
