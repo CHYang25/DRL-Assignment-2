@@ -63,9 +63,7 @@ class TD_MCTS:
         # TODO: Use the UCT formula: Q + c * sqrt(log(parent.visits)/child.visits) to select the best child.
         max_uct = -1
         chd = None
-            
         for act, child in node.children.items():
-            # print(child.total_reward, node.visits, child.visits)
             uct = child.total_reward + self.c * math.sqrt(math.log(node.visits) / child.visits)
             if uct > max_uct:
                 max_uct = uct
@@ -76,12 +74,15 @@ class TD_MCTS:
         # TODO: Perform a random rollout until reaching the maximum depth or a terminal state.
         # TODO: Use the approximator to evaluate the final state.
         reward = 0
+        state = sim_env.board
+        done = sim_env.is_game_over()
         for _ in range(depth):
-            action = np.random.choice(4, 1)[0]
-            state, reward, done, _ = sim_env.step(action)
             if done:
                 reward = -10000000
                 break
+            action = np.random.choice(4, 1)[0]
+            state, reward, done, _ = sim_env.step(action)
+            
         # print(reward, self.approximator.value(state))
         estimate = reward + self.approximator.value(state)
         self.max_value = max(self.max_value, estimate)
@@ -90,10 +91,12 @@ class TD_MCTS:
     
     # def rollout(self, sim_env, depth):
     #     legal_actions = [a for a in range(4) if sim_env.is_move_legal(a)]
-    #     score, _ = expectimax(self.approximator, sim_env.board, sim_env.score, legal_actions)
-    #     self.max_value = max(self.max_value, score)
-    #     self.min_value = min(self.min_value, score)
-    #     return score
+    #     estimate, _ = expectimax(self.approximator, sim_env.board, sim_env.score, legal_actions, depth=1, max_depth=depth)
+    #     # estimate = math.log2(estimate) if estimate > 0 else estimate
+    #     self.max_value = max(self.max_value, estimate)
+    #     self.min_value = min(self.min_value, estimate)
+    #     # return (estimate - self.min_value) / (self.max_value - self.min_value) if self.max_value - self.min_value != 0 else 0
+    #     return estimate
 
     def backpropagate(self, node, reward):
         # TODO: Propagate the obtained reward back up the tree.

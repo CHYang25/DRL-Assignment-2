@@ -13,10 +13,8 @@ from game2048.game2048 import Game2048Env
 from game2048.agent.td_mcts import TD_MCTS, TD_MCTS_Node
 from game2048.agent.heuristic_mcts import HEU_MCTS, HEU_MCTS_Node
 
-env = Game2048Env()
-
-approximator = pickle.load(open("./game2048/agent/DRL-Assignment-2-Checkpoint/n-tuple-approximator.pkl", "rb"))
-heu_mcts = HEU_MCTS(env, iterations=250, exploration_constant=1.41, rollout_depth=15, gamma=0.99)
+# approximator = pickle.load(open("./game2048/agent/DRL-Assignment-2-Checkpoint/n-tuple-approximator.pkl", "rb"))
+heu_mcts = HEU_MCTS(Game2048Env(), iterations=5, exploration_constant=0, rollout_depth=3, gamma=0.99)
 # td_mcts = TD_MCTS(env, approximator, iterations=200, exploration_constant=1.41, rollout_depth=10, gamma=0.99)
 
 
@@ -73,7 +71,8 @@ heu_mcts = HEU_MCTS(env, iterations=250, exploration_constant=1.41, rollout_dept
 #     return action
 
 def get_action(state, score):
-    root = TD_MCTS_Node(state, score)
+    env = heu_mcts.create_env_from_state(state, score)
+    root = HEU_MCTS_Node(env, state, score)
 
     for _ in range(heu_mcts.iterations):
         heu_mcts.run_simulation(root)
@@ -84,6 +83,8 @@ def get_action(state, score):
     return best_act
 
 if __name__ == '__main__':
+    env = Game2048Env()
+
     state = env.reset()
     done = False
     cnt = 0
@@ -92,8 +93,9 @@ if __name__ == '__main__':
 
         action = get_action(state, env.score)
         
-        print("Step:", cnt, "Score:", env.score)
-        print("State:\n", state)
+        print("Step:", cnt, "Score:", env.score, "Action:", action)
 
         state, reward, done, _ = env.step(action)
         cnt += 1
+
+        print("State:\n", state)
