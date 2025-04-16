@@ -13,8 +13,9 @@ from game2048.game2048 import Game2048Env
 from game2048.agent.td_mcts import TD_MCTS, TD_MCTS_Node
 from game2048.agent.heuristic_mcts import HEU_MCTS, HEU_MCTS_Node
 
-random.seed(42)
-np.random.seed(42)
+seed = random.choice(list(range(42, 52)))
+random.seed(seed)
+np.random.seed(seed)
 
 heu_mcts = HEU_MCTS(Game2048Env(), iterations=5, exploration_constant=0, rollout_depth=3, gamma=0.99)
 # td_mcts = TD_MCTS(
