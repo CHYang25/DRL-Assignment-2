@@ -19,7 +19,7 @@ heu_mcts = HEU_MCTS(Game2048Env(), iterations=5, exploration_constant=0, rollout
 #     pickle.load(open("./game2048/agent/DRL-Assignment-2-Checkpoint/n-tuple-approximator.pkl", "rb")), 
 #     iterations=5, exploration_constant=0, rollout_depth=3, gamma=0.99)
 
-def get_action(state, score): 
+def get_action(state, score):  
     env = heu_mcts.create_env_from_state(state, score)
     root = HEU_MCTS_Node(env, state, score)
 
